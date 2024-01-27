@@ -1,0 +1,121 @@
+import copy
+
+def read_data_from_file(file_path):
+    try:
+        with open(file_path, 'r') as file:
+            data = eval(file.read())  # Внимание: используйте eval только для простых структур данных
+        return data
+    except FileNotFoundError:
+        return []
+
+def write_results_to_file(results, file_path):
+    with open(file_path, 'w') as file:
+        for result in results:
+            file.write(result + '\n')
+
+children_file_path = "children_db.txt"
+output_file_path = "output_results.txt"
+initial_children_db = read_data_from_file(children_file_path)
+children_db = copy.deepcopy(initial_children_db)
+
+def print_menu():
+    print("\nМеню:")
+    print("1. Вывести полный список детей (отсортированный)")
+    print("2. Вывести список детей заданной группы (отсортированный по дате рождения)")
+    print("3. Вывести список детей, нуждающихся в лечении")
+    print("4. Добавить запись о новом ребенке")
+    print("5. Удалить запись о ребенке")
+    print("6. Изменить запись о ребенке")
+    print("0. Выход")
+
+def display_and_save_sorted_children(children_list):
+    sorted_children = sort_children_by_health(children_list)
+    results = []
+    for child in sorted_children:
+        results.append(str(child))
+    print("\nОтсортированный список:")
+    for result in results:
+        print(result)
+    write_results_to_file(results, output_file_path)
+    print("\nРезультаты записаны в файл:", output_file_path)
+
+def sort_children_by_health(children_list):
+    return sorted(children_list, key=lambda x: (list(x.values())[4:].count("здоров"), x["Фамилия"]), reverse=True)
+
+def sort_children_by_birthdate(children_list):
+    return sorted(children_list, key=lambda x: (x["Дата рождения"]["Год"], x["Дата рождения"]["Месяц"], x["Дата рождения"]["День"]))
+
+def sort_children_needing_treatment(children_list):
+    return sorted([child for child in children_list if "нуждается в лечении" in list(child.values())[4:]], key=lambda x: (x["Группа"], x["Фамилия"]))
+
+def add_child():
+    new_child = {}
+    
+    new_child["Фамилия"] = input("Введите фамилию ребенка: ")
+    new_child["Имя"] = input("Введите имя ребенка: ")
+
+    while True:
+        try:
+            new_child["Дата рождения"] = {
+                "Год": int(input("Введите год рождения: ")),
+                "Месяц": int(input("Введите месяц рождения: ")),
+                "День": int(input("Введите день рождения: "))
+            }
+            break
+        except ValueError:
+            print("Ошибка! Введите целые числа для года, месяца и дня.")
+
+    new_child["Группа"] = input("Введите название группы (Старшая/Средняя/Младшая): ").capitalize()
+
+    specialists = ["Невропатолог", "Отоларинголог", "Ортопед", "Окулист"]
+    for specialist in specialists:
+        while True:
+            health_status = input(f"Введите заключение {specialist} (здоров/нуждается в лечении): ").lower()
+            if health_status in ["здоров", "нуждается в лечении"]:
+                new_child[specialist] = health_status
+                break
+            else:
+                print("Ошибка! Введите 'здоров' или 'нуждается в лечении'.")
+
+    children_db.append(new_child)
+    print("Запись успешно добавлена.")
+
+def remove_child():
+    # Реализуйте удаление записи о ребенке
+    pass
+
+def update_child():
+    # Реализуйте изменение записи о ребенке
+    pass
+
+# Инициализация программы
+while True:
+    print_menu()
+    choice = input("Выберите действие (введите номер): ")
+
+    if choice == "1":
+        display_and_save_sorted_children(children_db)
+
+    elif choice == "2":
+        group = input("Введите название группы: ")
+        group_children = [child for child in children_db if child["Группа"] == group]
+        display_and_save_sorted_children(sort_children_by_birthdate(group_children))
+
+    elif choice == "3":
+        display_and_save_sorted_children(sort_children_needing_treatment(children_db))
+
+    elif choice == "4":
+        add_child()
+
+    elif choice == "5":
+        remove_child()
+
+    elif choice == "6":
+        update_child()
+
+    elif choice == "0":
+        print("Программа завершена.")
+        break
+
+    else:
+        print("Некорректный ввод. Пожалуйста, введите номер соответствующего действия.")
