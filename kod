@@ -1,1 +1,145 @@
+#https://ru.docs.wps.com/l/sAOKOb6_KwPGRAYrq68O0pxQ?v=v2
+# Функция для чтения данных из файла
+def read_data(file_name):
+    data = []  # Инициализация пустого списка для хранения данных
+    with open(file_name, 'r') as file:  # Открытие файла для чтения
+        for line in file:  # Итерация по строкам файла
+            parts = line.strip().split(',')  # Разделение строки на части по запятой
+            child = {  # Создание словаря с информацией о ребенке
+                'surname': parts[0],
+                'name': parts[1],
+                'birth_date': tuple(map(int, parts[2].split('-'))),
+                'group': parts[3],
+                'health_conclusion': {
+                    'neurologist': parts[4],
+                    'otolaryngologist': parts[5],
+                    'orthopedist': parts[6],
+                    'ophthalmologist': parts[7]
+                }
+            }
+            data.append(child)  # Добавление словаря в список данных
+    return data  # Возврат списка данных
+
+# Функция для записи данных в файл
+def write_data(file_name, data):
+    with open(file_name, 'w') as file:  # Открытие файла для записи
+        for child in data:  # Итерация по каждому ребенку в данных
+            # Формирование строки для записи в файл
+            line = f"{child['surname']},{child['name']},{child['birth_date'][0]}-{child['birth_date'][1]}-{child['birth_date'][2]},{child['group']},{child['health_conclusion']['neurologist']},{child['health_conclusion']['otolaryngologist']},{child['health_conclusion']['orthopedist']},{child['health_conclusion']['ophthalmologist']}\n"
+            file.write(line)  # Запись строки в файл
+
+# Функция для сортировки и фильтрации данных
+def sort_and_filter(data, sort_key, filter_key=None):
+    # Сортировка по убыванию количества заключений "нуждается в лечении"
+    if sort_key == 'health_conclusion':
+        data.sort(key=lambda x: sum(val == 'нуждается в лечении' for val in x['health_conclusion'].values()), reverse=True)
+        data.sort(key=lambda x: (sum(val == 'нуждается в лечении' for val in x['health_conclusion'].values()), x['surname']))
+    # Сортировка по группе и дате рождения
+    elif sort_key == 'group_and_birth_date':
+        data.sort(key=lambda x: (x['group'], x['birth_date']))
+    # Сортировка по группе и фамилии
+    elif sort_key == 'group_and_surname':
+        data.sort(key=lambda x: (x['group'], x['surname']))
+    # Фильтрация по заключению "нуждается в лечении"
+    if filter_key == 'needs_treatment':
+        data = [child for child in data if any(val == 'нуждается в лечении' for val in child['health_conclusion'].values())]
+    return data  # Возврат отсортированных и отфильтрованных данных
+
+# Функция для добавления ребенка в данные
+def add_child(data, child):
+    data.append(child)  # Добавление нового ребенка в список данных
+
+# Функция для удаления ребенка из данных
+def remove_child(data, surname, name):
+    # Фильтрация данных, исключая ребенка с заданной фамилией и именем
+    data = [child for child in data if not (child['surname'] == surname and child['name'] == name)]
+    return data  # Возврат обновленных данных
+
+# Функция для обновления информации о ребенке в данных
+def update_child(data, surname, new_data):
+    for child in data:  # Итерация по ребенкам в данных
+        if child['surname'] == surname:  # Поиск ребенка по фамилии
+            child.update(new_data)  # Обновление информации о ребенке
+            break  # Прерывание цикла после обновления
+
+# Основная функция программы
+def main():
+    file_name = 'children.txt'  # Имя файла с данными
+    data = read_data(file_name)  # Чтение данных из файла
+    while True:
+        # Вывод меню пользователю
+        print("1. Вывести полный список детей")
+        print("2. Вывести список детей заданной группы")
+        print("3. Вывести список детей, нуждающихся в лечении")
+        print("4. Добавить запись о новом ребенке")
+        print("5. Удалить запись о ребенке")
+        print("6. Изменить запись о ребенке")
+        print("7. Выход из программы")
+        choice = input("Выберите действие: ")  # Получение выбора пользователя
+        if choice == '1':
+            # Сортировка и фильтрация данных и запись в файл
+            sorted_data = sort_and_filter(data, 'health_conclusion')
+            write_data('new_file.txt', sorted_data)
+            print("Список детей сохранён в файл new_file.txt")
+        elif choice == '2':
+            group = input("Введите название группы: ")  # Получение названия группы от пользователя
+            # Фильтрация данных по группе, сортировка и запись в файл
+            filtered_data = [child for child in data if child['group'] == group]
+            sorted_data = sort_and_filter(filtered_data, 'group_and_birth_date')
+            write_data('new_file.txt', sorted_data)
+            print("Список детей сохранён в файл new_file.txt")
+        elif choice == '3':
+            # Сортировка и фильтрация данных и запись в файл
+            sorted_data = sort_and_filter(data, 'group_and_surname', filter_key='needs_treatment')
+            write_data('new_file.txt', sorted_data)
+            print("Список детей сохранён в файл new_file.txt")
+        elif choice == '4':
+            # Получение информации о новом ребенке от пользователя
+            new_child = {
+                'surname': input("Введите фамилию: "),
+                'name': input("Введите имя: "),
+                'birth_date': tuple(map(int, input("Введите дату рождения (год-месяц-число): ").split('-'))),
+                'group': input("Введите название группы: "),
+                'health_conclusion': {
+                    'neurologist': input("Заключение невропатолога: "),
+                    'otolaryngologist': input("Заключение отоларинголога: "),
+                    'orthopedist': input("Заключение ортопеда: "),
+                    'ophthalmologist': input("Заключение окулиста: ")
+                }
+            }
+            add_child(data, new_child)  # Добавление нового ребенка в данные
+            write_data('children.txt', data)  # Запись данных в файл
+            print("Запись о новом ребенке добавлена и сохранёна в файл new_file.txt")
+        elif choice == '5':
+            surname = input("Введите фамилию ребенка для удаления: ")  # Получение фамилии ребенка от пользователя
+            name = input("Введите имя ребенка для удаления: ")  # Получение имени ребенка от пользователя
+            data = remove_child(data, surname, name)  # Удаление ребенка из данных
+            write_data('children.txt', data)  # Запись обновленных данных в файл
+            print("Запись о ребенке удалена и сохранена в файл children.txt")
+        elif choice == '6':
+            surname = input("Введите фамилию ребенка для изменения: ")  # Получение фамилии ребенка от пользователя
+            # Получение новой информации о ребенке от пользователя
+            new_data = {
+                'surname': input("Новая фамилия: "),
+                'name': input("Новое имя: "),
+                'birth_date': tuple(map(int, input("Новая дата рождения ): ").split('-'))),
+                'group': input("Новое название группы: "),
+                'health_conclusion': {
+                    'neurologist': input("Новое заключение невропатолога : "),
+                    'otolaryngologist': input("Новое заключение отоларинголога : "),
+                    'orthopedist': input("Новое заключение ортопеда : "),
+                    'ophthalmologist': input("Новое заключение окулиста : ")
+                }
+            }
+            update_child(data, surname, new_data)  # Обновление информации о ребенке в данных
+            write_data('children.txt', data)  # Запись обновленных данных в файл
+            print("Запись о ребенке изменена и сохранена в файл new_file.txt")
+        elif choice == '7':
+            break  # Выход из цикла, завершение программы
+        else:
+            print("Некорректный ввод. Попробуйте снова.")  # Вывод сообщения об ошибке при некорректном вводе
+
+if __name__ == "__main__":
+    main()  # Вызов основной функции программы при запуске скрипта
+
 
